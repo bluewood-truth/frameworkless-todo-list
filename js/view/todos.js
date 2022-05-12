@@ -4,7 +4,7 @@ const createNewTodo = () => {
 	return template.content.firstElementChild.cloneNode(true);
 };
 
-const getTodo = ({ text, completed }, index, events) => {
+const getTodo = ({ text, completed }, index) => {
 	const $todo = createNewTodo();
 
 	$todo.querySelector("label").textContent = text;
@@ -15,9 +15,7 @@ const getTodo = ({ text, completed }, index, events) => {
 		$todo.querySelector("input.toggle").checked = true;
 	}
 
-	$todo
-		.querySelector("button.destroy")
-		.addEventListener("click", () => events.deleteItem(index));
+	$todo.querySelector("button.destroy").dataset.index = index;
 
 	return $todo;
 };
@@ -31,6 +29,12 @@ export const todosView = ($target, state, events) => {
 
 	const todos = getTodos(state, events);
 	todos.forEach(($todo) => $todos.appendChild($todo));
+
+	$todos.addEventListener("click", (e) => {
+		if (e.target.matches("button.destroy")) {
+			events.deleteItem(e.target.dataset.index);
+		}
+	});
 
 	return $todos;
 };
