@@ -9,7 +9,7 @@ const getTodoCount = ({ todos }) => {
 };
 
 export const todoCountView = ($target, state) => {
-	const $todoCount = $target.cloneNode();
+	const $todoCount = $target.cloneNode(true);
 	$todoCount.innerHTML = getTodoCount(state);
 
 	return $todoCount;

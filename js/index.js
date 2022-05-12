@@ -1,5 +1,12 @@
-import { appView } from "./view/app.js";
+import { todosView } from "./view/todos.js";
+import { todoCountView } from "./view/todoCount.js";
+import { filtersView } from "./view/filters.js";
 import { getTodos } from "./utils.js";
+import { registry } from "./registry.js";
+
+registry.add("todos", todosView);
+registry.add("todoCount", todoCountView);
+registry.add("filters", filtersView);
 
 const state = {
 	todos: getTodos(10),
@@ -8,5 +15,6 @@ const state = {
 
 window.requestAnimationFrame(() => {
 	const $app = document.querySelector(".todoapp");
-	$app.replaceWith(appView($app, state));
+	const $newApp = registry.render($app, state);
+	$app.replaceWith($newApp);
 });
