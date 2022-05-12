@@ -1,23 +1,32 @@
+const template = document.getElementById("todo");
+
+const createNewTodo = () => {
+	return template.content.firstElementChild.cloneNode(true);
+};
+
 const getTodo = ({ text, completed }) => {
-	return `
-    <li ${completed ? 'class="completed"' : ""}>
-      <div class="view">
-        <input class="toggle" type="checkbox" ${completed ? "checked" : ""}>
-        <label>${text}</label>
-        <button class="destroy"></button>
-      </div>
-      <input class="edit" value="${text}">
-    </li>
-  `;
+	const $todo = createNewTodo();
+
+	$todo.querySelector("label").textContent = text;
+	$todo.querySelector("input.edit").value = text;
+
+	if (completed) {
+		$todo.classList.add("completed");
+		$todo.querySelector("input.toggle").checked = true;
+	}
+
+	return $todo;
 };
 
 const getTodos = ({ todos }) => {
-	return todos.map(getTodo).join("");
+	return todos.map(getTodo);
 };
 
 export const todosView = ($target, state) => {
-	const $todos = $target.cloneNode(true);
-	$todos.innerHTML = getTodos(state);
+	const $todos = $target.cloneNode(false);
+
+  const todos = getTodos(state);
+	todos.forEach(($todo) => $todos.appendChild($todo));
 
 	return $todos;
 };
