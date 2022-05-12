@@ -16,20 +16,23 @@ const state = {
 	currFilter: "All",
 };
 
+const events = {
+	addItem: (text) => {
+		state.todos.push({ text, completed: false });
+		render();
+	},
+	deleteItem: (index) => {
+		state.todos.splice(index, 1);
+		render();
+	},
+};
+
 const render = () => {
 	window.requestAnimationFrame(() => {
 		const $root = document.querySelector("#root");
-		const $newRoot = registry.render($root, state);
+		const $newRoot = registry.render($root, state, events);
 		applyDiff(document.body, $root, $newRoot);
 	});
 };
 
 render();
-
-// diff 알고리즘이 잘 적용되었는지 확인하기 위해
-// 동적 렌더링 테스트
-setInterval(() => {
-	state.todos = getTodos(10);
-	render();
-	console.log("render");
-}, 3000);
