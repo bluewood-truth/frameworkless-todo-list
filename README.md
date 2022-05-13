@@ -54,3 +54,152 @@
 - 상태를 조작하는 함수를 `events` 객체에 정의한 후 `events` 객체를 registry에 추가한다. 이를 통해 모든 컴포넌트에서 `events` 객체에 접근할 수 있게 된다.
 - todo 항목을 삭제하는 핸들러는 리스트 엘리먼트에 추가하여 이벤트 위임을 할 수 있다. 버튼 하나하나에 핸들러를 추가하는 것에 비해 성능과 메모리 사용성을 개선할 수 있다.
 
+## 3. 웹 컴포넌트
+
+### 웹 컴포넌트
+
+- 웹 컴포넌트란 커스텀 엘리먼트를 작성하고 캡슐화하기 위해 브라우저에서 제공하는 API들을 말한다. 크게 다음 세 가지 기술로 구성된다.
+  - **HTML 템플릿**: `<template>`와 `<slot>` 태그를 사용해 JavaScript에서 DOM 엘리먼트를 동적으로 생성하기 위한 템플릿을 HTML상에 작성할 수 있다.
+  - **커스텀 엘리먼트**: 말 그대로 자신만의 HTML 태그를 정의하고 사용할 수 있다.
+  - **Shadow DOM**: 웹 컴포넌트가 외부 DOM의 영향을 받지 않도록 캡슐화하기 위해 사용한다.
+
+### 커스텀 엘리먼트
+
+- 커스텀 엘리먼트를 통해 자신만의 HTML 태그를 작성할 수 있다. 실제로 사용하면 다음과 같다.
+
+  ```html
+  <hello-world></hello-world>
+  ```
+
+  커스텀 엘리먼트는 `-`로 구분된 두 단어 이상의 태그명을 가져야 한다. 한 단어로 이루어진 태그명은 W3C에서만 사용할 수 있기 때문이다.
+
+- 커스텀 엘리먼트는 다음과 같은 형태로 정의한다.
+
+  ```javascript
+  window.customElements.define(태그명, 클래스(, {extends: 확장할 태그명}));
+  ```
+
+  - 태그명: `-`로 구분되고, 두 단어 이상으로 이루어져야 한다.
+  - 클래스: HTMLElement를 상속한 클래스로, 여기서 실제 엘리먼트의 동작방식을 결정한다.
+  - 확장할 태그명: 커스텀 엘리먼트가 기존에 존재하는 HTML 태그를 기반으로 생성되도록 옵션을 줄 수 있다.
+
+#### 속성 관리
+
+- 엘리먼트의 속성은 HTML 상에서 추가하거나 엘리먼트 객체의 세터(setter)를 사용, 혹은 setAttribute 메서드를 사용해서 조작할 수 있다.
+
+  ```html
+  <input value="newText" />
+  ```
+
+  ```javascript
+  input.value = 'newText';
+  ```
+
+  ```javascript
+  input.setAttribute('value', 'newText');
+  ```
+
+  이들은 동일한 결과를 가져오고 서로 동기화된다.
+
+- 이를 커스텀 엘리먼트에서 구현하려면 다음과 같이 작성할 수 있다.
+
+  ```javascript
+  class HelloWorld extends HTMLElement {
+      get color() {
+          return this.getAttribute('color');
+      }
+  
+      set color(value) {
+          this.setAttribute('color', value);
+      }
+  
+      connectedCallback() {
+          window.requestAnimationFrame(() => {
+              const $div = document.createElement('div');
+              $div.textContent = "Hello World!";
+              $div.style.color = this.color;
+  
+              this.appendChild($div);
+          });
+      }
+  }
+  ```
+
+  color 속성에 대한 setter와 getter는 각각 `setAttribute`, `getAttribute`의 래퍼이므로 동일한 결과를 가져오게 된다.
+
+-  커스텀 엘리먼트의 클래스에서는 다양한 생명주기 콜백을 정의할 수 있다.
+
+  - `connectedCallback`: 컴포넌트가 DOM에 연결될 때 호출된다.
+
+  - `disconnectedCallback`: 컴포넌트가 DOM에서 제거될 때 호출된다.
+
+  - `attributeChangedCallback`: 속성이 변경되었을 때마다 호출된다. 사용하기 위해선 변경을 체크할 속성을 `observedAttributes`로 정의해줘야 한다.
+
+    ```javascript
+    class HelloWorld extends HTMLElement {
+        static get observedAttributes() { return ['color']; }
+        // ...
+    }
+    ```
+
+  > #### `constructor` vs `connectedCallback`
+  >
+  > - `constructor`는 엘리먼트가 생성되었을 때 호출된다.
+  > - `connectedCallback`은 생성된 엘리먼트가 DOM에 추가되었을 때 호출된다.
+
+- 특정한 동작에 대해 `CustomEvent` 생성자로 생성한 이벤트를 `dispatchEvent` 메서드로 전송할 수 있다.
+
+  ```javascript
+  class HelloWorld extends HTMLElement {
+      set color(value) {
+          this.setAttribute('color', value);
+          onColorChange();
+      }
+  
+      onColorChange() {
+          const event = new CustomEvent(
+              'COLOR_CHANGE',
+              { detail: { color: this.color } }
+          );
+  
+          this.dispatchEvent(event);
+      }
+      // ...
+  }
+  
+  // ...
+  
+  const $helloWorld = document.querySelector('hello-world');
+  $helloWorld.addEventListener('COLOR_CHANGE', (e) => {
+     alert(`color is changed to ${e.detail.color}`) 
+  });
+  ```
+
+### 웹 컴포넌트 vs 렌더링 함수
+
+#### 코드 스타일
+
+- 웹 컴포넌트는 클래스를 사용하여 HTMLElement를 확장해야 한다. C#이나 Java에 익숙하다면 비교적 쉽게 적응할 수 있다.
+- 함수형 프로그래밍을 선호한다면 렌더링 함수가 더 맞을 것이다.
+- 렌더링 함수로 시작하더라도 웹 컴포넌트로 래핑할 수도 있다. 두 방식은 상호 배타적이지 않다.
+
+#### 테스트 가능성
+
+- *책에서는 Jest 등에서 사용하는 JSDOM이 커스텀 엘리먼트를 지원하지 않아 웹 컴포넌트는 테스트가 어렵다고 하지만, 현재 JSDOM과 Jest는 커스텀 엘리먼트를 지원한다!*
+
+#### 이식의 용이성(Portable)
+
+- 웹 컴포넌트는 다른 DOM 요소와 동일하게 동작하므로, 잘 만들어진 웹 컴포넌트는 다른 웹 애플리케이션 간의 이식이 매우 용이하다.
+- 반면 렌더링 함수는 구현 방식에 따라 이식이 어려울 수 있다.
+
+#### 커뮤니티
+
+- 웹 컴포넌트는 DOM UI 요소를 작성하는 표준 방법이므로 대규모 팀이나 빠르게 성장하는 팀이라면 명심해야 할 아주 유용한 기능이다.
+
+### disappearing framework
+
+- 웹 컴포넌트를 사용한 프레임워크는 빌드 결과물이 그 자체로 동작하는 표준 JavaScript 코드가 된다. 즉 React처럼 결과물에 프레임워크 코드를 따로 포함시킬 필요 없이 빌드 결과물 자체로 작동하는 코드가 된다.
+- 이 방식을 사용하는 대표적인 프레임워크로 **Svelt.js**가 있다.
+
+
+
